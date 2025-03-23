@@ -123,7 +123,7 @@ cleaned_weights = ef.clean_weights()
 # Get the discrete allocation of each share per stock
 from pypfopt.discrete_allocation import DiscreteAllocation, get_latest_prices
 
-latest_pr = get_latest_prices(df)
+latest_prices = get_latest_prices(df)
 weights = cleaned_weights
 da = DiscreteAllocation(weights, latest_prices, total_portfolio_value = 15000)
 
