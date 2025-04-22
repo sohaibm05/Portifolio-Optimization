@@ -27,35 +27,57 @@ def fenwick_query(bit, index):
     return total
 
 def search_ticker():
+    # Get the user's input from the search_entry field and remove extra spaces
     query = search_entry.get().strip()
 
+    # If the input is empty, show a warning message and stop the function
     if not query:
         messagebox.showwarning("Input Error", "Please enter a company name or ticker.")
         return
 
+    # Build the URL for Yahoo Finance's public search API using the user's query
     url = f"https://query1.finance.yahoo.com/v1/finance/search?q={query}"
 
+    # Set headers to make the request look like it's coming from a web browser
+    # This helps avoid getting blocked by the server for looking like a bot
     headers = {
         "User-Agent": "Mozilla/5.0"
     }
 
     try:
+        # Send a GET request to Yahoo Finance's search endpoint with the given URL and headers
         response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        data = response.json()
 
+        # If the response returned an HTTP error (e.g., 404, 500), raise it as an exception
+        response.raise_for_status()
+
+        # Convert the response from JSON format (text) to a Python dictionary 
+        data = response.json() 
+
+        # If there are no matching ticker suggestions, show an error message and return
         if not data.get('quotes'):
             messagebox.showerror("Search Error", f"No ticker found for '{query}'")
             return
 
+        # Clear the Listbox (so old results don’t stay)
         suggestions_listbox.delete(0, tk.END)
+
+        # Go through the suggestions provided by the API
         for item in data['quotes']:
+            # Get the ticker symbol (like "AAPL", "TSLA") or default to 'N/A' if not available
             symbol = item.get('symbol', 'N/A')
+
+            # Get the company's short name (like "Apple Inc.") or default to 'N/A'
             name = item.get('shortname', 'N/A')
+
+            # Insert the symbol and name into the Listbox so the user can choose one
             suggestions_listbox.insert(tk.END, f"{symbol} - {name}")
 
+    # If anything goes wrong during the request (like no internet or server error),
+    # show the error in a popup
     except Exception as e:
         messagebox.showerror("Search Error", f"Could not complete search for '{query}'\n{str(e)}")
+
 
 def add_selected_ticker():
     selected = suggestions_listbox.get(tk.ACTIVE)
@@ -68,43 +90,83 @@ def add_selected_ticker():
 
 def analyze_portfolio():
     try:
+        # Get user-entered stock tickers, remove spaces, and split by comma
         assets = stock_entry.get().replace(" ", "").split(",")
+
+        # Get the user-entered start date for historical data
         stockStartDate = start_date_entry.get()
+
+        # Get the total amount of money to be invested
         portfolio_value = float(funds_entry.get())
+
+        # Get today's date in YYYY-MM-DD format
         today = datetime.today().strftime('%Y-%m-%d')
 
+        # Initialize an empty DataFrame to store closing prices for each stock
         df = pd.DataFrame()
+        
+        # Download daily closing price data for each stock using yfinance
         for stock in assets:
             df[stock] = yf.download(stock, start=stockStartDate, end=today)['Close']
 
-        weights = np.array([1/len(assets)] * len(assets))
+        # Initialize equal weights for each asset (uniform distribution)
+        weights = np.array([1 / len(assets)] * len(assets))
 
+        # Calculate daily percentage returns and fill any NaN values with 0
         returns = df.pct_change().fillna(0)
+
+        # Sum returns across all assets for each day (portfolio's daily return)
         daily_returns = returns.sum(axis=1).values
 
+        # Initialize Binary Indexed Tree (Fenwick Tree) to store cumulative returns
         size = len(daily_returns)
         bit = [0] * (size + 1)
+        
+        # Update Fenwick Tree with each day's return (indexing starts from 1)
         for i, ret in enumerate(daily_returns, 1):
             fenwick_update(bit, size, i, ret)
 
-        cov_matrix_annual = returns.cov() * 252
+        # Calculate annualized covariance matrix (used for risk estimation)
+        cov_matrix_annual = returns.cov() * 252  # 252 trading days per year
+
+        # Calculate portfolio variance using the formula: wᵀΣw
         port_variance = np.dot(weights.T, np.dot(cov_matrix_annual, weights))
+
+        # Calculate portfolio volatility (standard deviation)
         port_volitility = np.sqrt(port_variance)
+
+        # Calculate simple annual return: mean of returns * weights * 252
         portfolioSimpleAnnualReturn = np.sum(returns.mean() * weights) * 252
 
+        # Convert results to readable percentage strings
         percent_var = str(round(port_variance, 2) * 100) + ' %'
         percent_vols = str(round(port_volitility, 2) * 100) + ' %'
         percent_ret = str(round(portfolioSimpleAnnualReturn, 2) * 100) + ' %'
 
+        # Estimate expected annual returns using historical mean returns
         mew = expected_returns.mean_historical_return(df)
+
+        # Estimate annualized sample covariance matrix of returns
         S = risk_models.sample_cov(df)
+
+        # Create an Efficient Frontier object for optimization
         ef = EfficientFrontier(mew, S)
+
+        # Optimize for maximum Sharpe ratio (risk-adjusted return)
         opt_weights = ef.max_sharpe()
+
+        # Clean weights to remove very small values for clarity
         cleaned_weights = ef.clean_weights()
 
+        # Get the most recent prices of each asset
         latest_prices = get_latest_prices(df)
+
+        # Allocate capital to each asset using the cleaned weights
         da = DiscreteAllocation(cleaned_weights, latest_prices, total_portfolio_value=portfolio_value)
+
+        # Get final allocation result and leftover funds (uninvested cash)
         allocation, leftover = da.lp_portfolio()
+
 
         results = f"""Expected Annual Return: {percent_ret}
 Annual Volatility: {percent_vols}
@@ -117,28 +179,49 @@ Discrete Allocation (for ${portfolio_value:,.2f}):
 {allocation}
 Leftover Funds: ${leftover:.2f}
 """
+        # Clear the text area to remove any previous results displayed
         result_text.delete('1.0', tk.END)
+
+        # Insert the new results into the text area
         result_text.insert(tk.END, results)
 
-        # Clear previous plot if it exists
+        # Clear previous plot if it exists (this removes any previous graph in the graph_frame container)
         for widget in graph_frame.winfo_children():
             widget.destroy()
 
-        # Create new plot
+        # Create a new figure and axes for the plot with a specified size (8x4 inches)
         fig, ax = plt.subplots(figsize=(8, 4))
+
+        # Loop through each column in the DataFrame (df) and plot the data
+        # Each column represents the adjusted close price for a different stock or asset
         for c in df.columns:
-            ax.plot(df[c], label=c)
+            ax.plot(df[c], label=c)  # Plot each stock with its own line, and label it by the column name
+
+        # Set the title of the plot
         ax.set_title('Portfolio Adj. Close Price History')
+
+        # Set the label for the x-axis (dates)
         ax.set_xlabel('Date')
+
+        # Set the label for the y-axis (Adjusted Price in USD)
         ax.set_ylabel('Adj. Price USD ($)')
+
+        # Add a legend to the plot, placed at the upper left corner
         ax.legend(loc='upper left')
 
+        # Create a canvas to embed the plot inside the Tkinter application
         canvas = FigureCanvasTkAgg(fig, master=graph_frame)
+
+        # Draw the plot onto the canvas
         canvas.draw()
+
+        # Pack the canvas widget to display the plot in the graph_frame, making it expandable with window resizing
         canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
+        # If an error occurs during this block, show an error message box with the exception details
     except Exception as e:
         messagebox.showerror("Error", str(e))
+
 
 # GUI Setup
 window = tk.Tk()
@@ -196,7 +279,7 @@ add_button.grid(row=5, column=0, columnspan=3, pady=5)
 analyze_button = tk.Button(input_frame, text="Analyze Portfolio", command=analyze_portfolio)
 analyze_button.grid(row=6, column=0, columnspan=3, pady=10)
 
-# --- Results Display ---
+# Results Display 
 result_text = tk.Text(results_frame, height=20, width=55)
 result_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
