@@ -1,0 +1,49 @@
+Portfolio Optimization
+
+
+Authors: Rana Mohammad Sarib Khan, Sohaib Muhammad, Syed Ibad Asim
+
+
+Problem Statement
+
+Investment can be a daunting task, with inexperienced investors being especially prone to errors in decision-making with regards to analyzing multiple assets, calculating risk-returns and determining the optimal allocations of their resources. Manual calculations are cumbersome and prone to errors. 
+
+This project aims to address these concerns by utilizing the Fenwick Tree ADT to create a user-friendly program which analyzes the past performance of financial stocks to generate the most optimal investment bundle. Our Portfolio Optimization Program implements the following functions:
+
+Search and Select Stock Tickers: A search bar allows the user to obtain the specific stock ticker for any publicly listed company and include it in the analysis.
+Portfolio Performance Analysis: The program utilizes metrics such as expected return, volatility and variance in its analysis.
+Optimizing Asset Allocation: The metrics above are used alongside Modern Portfolio Theory (MPT), the Markowitz model, the Sharpe ratio and the Efficient frontier to allocate assets for maximum returns.
+Visualization Historical Stock Pricing: Allowing for a greater understanding for investors who might not be well-versed in complex calculations regarding asset allocations.
+
+
+Significance
+
+Efficiency: The automation of complex financial calculations saves the investors’ time and effort.
+Accessibility: An intuitive and easy-to-use GUI allows users, who do not have knowledge of complex financial concepts, the opportunity to invest.
+Real-Time Data: The Portfolio Optimization Program fetches live stock price data from Yahoo Finance, to ensure that the stock bundle optimization is up-to-date.
+
+
+Data Structures and Algorithms Justification:
+
+Major Data Structure - The Fenwick Tree:
+The Fenwick Tree (Or Binary Indexed Tree), allows for the computation and updating of cumulative returns in O(logn). This is significantly faster than the linear cumulative method of computing and updating returns which takes O(n) time. It does this by storing cumulative sums in a compact binary-indexed array. Each index is responsible for a particular range of the array, determined by the least significant bit (LSB).
+
+Our Portfolio Optimization Program computes more than a decades-worth of stock data, for several companies, in order to perform the necessary calculations to craft the most optimized basket of assets in terms of financial returns.
+
+The entire process necessitates the processing of several decades worth of data, a task which is made much more efficient through the use of Fenwick tree which performs these computations in O(logn) time, as compared to the brute-force method with a time of O(n).
+
+Minor Data Structure - DataFrame:
+DataFrame is a two-dimensional data structure akin to a spreadsheet. It contains rows and columns, where the rows contain observations and the columns contain variables. The columns are capable of handling different types of data however each column is homogenous..
+
+
+
+Time Complexity and Memory Analysis:
+
+Fenwick Tree:
+O(logn) per Update or Query operation. O(nlogn) time to build the tree.
+Fetching Stock Data:
+O(m * n), where ‘m’ is the number of stocks and ‘n’ is the number of days in history
+Covariance Matrix Calculation:
+O(m2 * n), as it computes pairwise correlations for ‘m’ stocks.
+Portfolio Optimization:
+O(m3) (Worst case)
