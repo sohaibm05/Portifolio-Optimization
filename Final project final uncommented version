@@ -220,7 +220,7 @@ Leftover Funds: ${leftover:.2f}
 
         # If an error occurs during this block, show an error message box with the exception details
     except Exception as e:
-        messagebox.showerror("Error", str(e))
+            messagebox.showerror("Error", str(e))
 
 
 # GUI Setup
@@ -242,7 +242,7 @@ results_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 graph_frame = tk.Frame(output_frame)
 graph_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
 
-# --- Input elements ---
+# Input elements 
 # Ticker input
 tk.Label(input_frame, text="Enter Stock Tickers (comma-separated):").grid(row=0, column=0, sticky='w')
 stock_entry = tk.Entry(input_frame, width=50)
