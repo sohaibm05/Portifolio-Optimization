@@ -1,4 +1,4 @@
-# Portifolio-Optimization
+# Portfolio-Optimization
 Data Structures and Algorithms: Project Proposal
 
 
